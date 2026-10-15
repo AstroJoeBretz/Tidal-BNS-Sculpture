@@ -1,0 +1,9 @@
+# generated deliverables (rebuild with `python build_all.py`)
+out/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/

@@ -1,0 +1,10 @@
+# Sculpture build, shape code, amplitude generator, verification scripts.
+# Developed and tested with numpy 2.5, scipy 1.18, trimesh 4.12, manifold3d 3.5, pillow 12.2, pytest 9.1.
+numpy>=2.0          # np.trapezoid
+scipy>=1.15         # scipy.special.sph_harm_y
+trimesh
+manifold3d          # boolean backend for the star sockets
+pillow              # 16-bit heightmap PNG
+
+# tests
+pytest
