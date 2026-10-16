@@ -1,0 +1,14 @@
+# Example: equal-mass 1.4 + 1.4 Msun binary, nonspinning stars. Everything else is the default.
+# Run:  python build_all.py --config configs/equal_mass.toml     (output goes to out/equal_mass/)
+
+[binary]
+m1_msun = 1.4
+m2_msun = 1.4
+r1_km   = 12.0
+r2_km   = 12.0
+
+[stars.heavy]
+spin_hz = 0.0
+
+[stars.light]
+spin_hz = 0.0

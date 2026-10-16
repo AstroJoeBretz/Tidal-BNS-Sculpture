@@ -94,9 +94,9 @@ spiral shrinks the stars. $a = 33$ km is the best compromise:
 - one full two-armed wrap per 212.13 mm of radius (the 254 mm panel reaches 0.85 of it at
   the corners and 0.60 at the edge midpoints).
 
-To retune, change `A_KM` and `SCALE_LAMBDA_MM` in `params.py` and regenerate
-`data/star_modes.toml` (`tools/make_star_modes.py`); then re-run `build_all.py`, whose validation step
-re-checks the parameters that depend on them (§9).
+To retune, change `binary.a_km` and `panel.scale_lambda_mm` in a configuration file (§9) and re-run
+`build_all.py`, which regenerates the star amplitudes and whose validation step re-checks the
+parameters that depend on them.
 
 ---
 
@@ -261,8 +261,10 @@ $$
 **No edge window:** the field is carved all the way to the panel's cut edge rather than tapering
 flat over the outer margin; a taper's own curvature would be the tightest feature on the plate.
 
-**Normalization constant — computed, not chosen:** $N=\max\lvert u_{\rm raw}\rvert$ over the sampled
-plate $=5.403\times10^{-4}$, at $(x,y)=(-88.5,-23.0)$ mm. The field at the stars is small: at
+**Normalization constant — computed, not chosen:** $N=\max\lvert u_{\rm raw}\rvert$ over the plate sampled at
+the 0.5 mm analysis step (`ANALYSIS_STEP_MM`) $=5.403\times10^{-4}$, at $(x,y)=(-88.5,-23.0)$ mm. $N$, the
+milling checks (§5) and the star-height solve (§7) all use that analysis grid, so the carved field does not
+depend on the export resolution `panel.grid_step_mm` (§8). The field at the stars is small: at
 `Z_EVAL_MM = −70`, $u_{\rm raw}/N=+0.055$ at the heavy star and $-0.033$ at the light star, so both
 stars sit near the mid-plane of the relief (the post holes start at −9.45 / −10.33 mm). The extremes lie on a
 ring of radius ≈ 90–100 mm. Local maxima of $\lvert u\rvert$:
@@ -318,7 +320,9 @@ range (the roughing pass should remove most of it).
 Single 3-axis finishing pass, no rest machining, no steep-wall strategy (those only become relevant
 above ~45–60°).
 
-**Chordal sag** at 0.5 mm mesh spacing: $h^2/(8R_c)\approx0.0019$ mm at $R_c=16.5$ mm. Negligible.
+**Chordal sag** of the exported mesh: $h^2/(8R_c)$ is 0.0019 mm at 0.5 mm spacing and ≈ 0.03 mm at the default
+2 mm spacing ($R_c=16.5$ mm). Measured against the field itself, the 2 mm plate surface deviates by at most
+0.030 mm (rms 0.009 mm), below the 0.045 mm scallop of the finishing pass.
 
 ### 5.2 Toolpath
 
@@ -352,7 +356,7 @@ r(\theta,\phi_s)=R\left[1+X\,\frac{\Delta R_{\rm tide}(\theta,\phi_s)}{R}
 \frac{\Delta R_{\rm tide}}{R}=\sum_l\frac{h_l}{I_l}\,\mathrm{Re}\sum_a C_a\,Y_{lm_a}
 $$
 
-with $l=2,3$, the complex amplitudes $C_a$ stored in `data/star_modes.toml`, the shape numbers $h_l$ of a
+with $l=2,3$, the complex amplitudes $C_a$ stored in the generated `star_modes.toml`, the shape numbers $h_l$ of a
 $\Gamma=2$ polytrope, $X=1$ (no exaggeration) and spin oblateness on. The surface is triaxial, its
 long axis trails the companion by the tidal lag $\psi$, and the $l=3$ term makes the near-side bulge
 larger than the far-side one.
@@ -415,13 +419,13 @@ around the socket will break watertightness.
 | Material | **1/8″ (3.175 mm) brass rod** |
 | Panel holes | Ø3.175 mm (a 1/8″ bit) × 8.0 mm deep, at $(-10.243, 0)$ and $(+13.658, 0)$; a CAM operation, not in the plate STL |
 | Hole location | at each star's $(x,y)$ panel position, drilled from the *local* relief surface (there is no flat zone under the stars, §4.3) |
-| Star centre height | $z=+3.85$ mm (`STAR_CENTER_Z_MM`, both stars level), the value that makes the closest approach of either star to the plate $\ge$ **5 mm** (`STAR_MIN_GAP_MM`) |
+| Star centre height | $z=+3.85$ mm, both stars level: derived by `build_all.py` as the smallest multiple of 0.05 mm that makes the closest approach of either star to the plate $\ge$ **5 mm** (`posts.star_min_gap_mm`) |
 
 **What "5 mm" means.** The height is the *closest approach between a star's surface and the plate
 surface* (3-D, measured on the placed meshes against the plate grid, `validate.check_star_height`), not
 the star-centre height and not the clearance above the $z=0$ datum. The plate is carved, so those
 differ: the relief under the stars is ≈ −10 mm (−9.45 / −10.33), not 0. Heavy star 5.05 mm, light star
-5.49 mm at `STAR_CENTER_Z_MM = 3.85` (the heavy star governs; a level pair means the light one cannot
+5.49 mm at the derived centre height of 3.85 mm (the heavy star governs; a level pair means the light one cannot
 also be exactly 5.0 — it sits 0.5 mm higher above its floor). For comparison, the same stars with their
 *centre* at 5 mm would sit at 6.2 / 6.6 mm. The stars' centres are below the high ridges of the relief
 ($z=0$), a deliberate consequence of the deep valley they sit in.
@@ -458,18 +462,20 @@ written.
 | `ns_heavy_1p6.stl` | 1.6 M☉ star, body frame, socket at $-z$, centred at origin | ~4 MB |
 | `ns_light_1p2.stl` | 1.2 M☉ star, same convention | ~4 MB |
 | `ns_heavy_1p6_sphere.stl`, `ns_light_1p2_sphere.stl` | **Comparison stars, no deformation**: ideal spheres of radius $R_0$ (8.691 / 9.053 mm), no tide, no spin, no lag; same Ø3.375 × 6.0 mm socket from the pole point, no flat. Not placed in `assembly_preview.stl`, and not covered by `check_star_height` — see below. | ~4 MB each |
-| `plate_relief.stl` | **closed solid**: relief top + 4 side walls + flat bottom, 254 × 254 mm, bottom at $z=-36$ mm. **No post holes** — a separate CAM operation (§7). | ~52 MB |
-| `plate_heightmap.png` | 16-bit greyscale, 509×509, with a `.json` sidecar giving the $z$-range — alternate input for CAM that prefers depth maps | ~350 kB |
-| `assembly_preview.stl` | everything positioned, posts included — **render only, not for manufacture** | ~60 MB |
+| `plate_relief.stl` | **closed solid**: relief top + 4 side walls + flat bottom, 254 × 254 mm, bottom at $z=-36$ mm. **No post holes** — a separate CAM operation (§7). | ~3 MB (2 mm grid) |
+| `plate_heightmap.png` | 16-bit greyscale, 128×128 at the 2 mm grid, with a `.json` sidecar giving the $z$-range — alternate input for CAM that prefers depth maps | ~30 kB |
+| `assembly_preview.stl` | everything positioned, posts included — **render only, not for manufacture** | ~11 MB |
+| `star_modes.toml` | the generated per-star mode amplitudes the star meshes were built from | ~3 kB |
 
 **Sphere stars on the same posts.** With the same centre height ($z=3.85$ mm) a sphere's pole is about
 0.6 mm lower than the deformed star's (heavy 0.60, light 0.61), so their closest approach to the plate
 is 4.51 / 4.89 mm, not 5. For $\ge5$ mm use centre $z=4.35$ (heavy) and $4.00$ (light) mm, giving rods of
 19.1 / 19.3 mm; at 3.85 mm the rods are 18.6 / 19.1 mm. The sphere–sphere surface gap is 6.16 mm.
 
-**Plate sampling grid: 0.5 mm** (509×509 → ~516k top triangles, 1.04M in the closed solid). Chordal error
-is negligible (§5.1) and this is 1.5× oversampled relative to the 0.75 mm stepover. A 1.0 mm grid is
-defensible if your CAM chokes on the file. The plate STL must be a closed solid, not an open surface —
+**Plate sampling grid: 2 mm** (`panel.grid_step_mm`; 128×128 → 32,258 top triangles, 65,532 in the closed
+solid). This is coarser than the 0.75 mm finishing stepover; the surface stays within 0.03 mm of the field
+(§5.1), and CAM interpolates linearly between samples. Set `grid_step_mm = 0.5` for a 1.04M-face, ~52 MB
+plate that oversamples the stepover. The field and every check are independent of this setting (§4.3). The plate STL must be a closed solid, not an open surface —
 Fusion, VCarve and most CAM will reject or mis-offset an open mesh.
 
 ---
@@ -479,8 +485,11 @@ Fusion, VCarve and most CAM will reject or mis-offset an open mesh.
 **Stack:** Python 3.11+ (uses `tomllib`), `numpy`, `scipy` ≥ 1.15, `trimesh`, `manifold3d`, `pillow`.
 
 ```
-build_all.py              generate every deliverable into out/ and run the validation
-src/params.py             input constants (system, panel, milling, posts)
+build_all.py              generate every deliverable into out/<config name>/ and run the validation
+configs/default.toml      the reference design; every key a user can change, with its meaning
+configs/equal_mass.toml   example alternative: 1.4 + 1.4 Msun, nonspinning
+src/params.py             reads the configuration (--config / TIDAL_NS_CONFIG) into constants
+src/cli_config.py         selects the configuration file from the command line
 src/binary.py             Kepler solve, Omega, lambda_GW, scale S, star positions
 src/wavefield.py          retarded per-star potential, height field z(x, y)
 src/plate.py              sample grid -> watertight solid -> STL; heightmap PNG
@@ -490,8 +499,8 @@ src/tidal_shape.py        amplitudes -> surface radius r(theta, phi); regime gat
 src/star.py               icosphere, radial displacement, socket boolean -> STL
 src/assembly.py           preview scene
 src/validate.py           post-generation checks
-tools/make_star_modes.py  amplitudes at the snapshot -> data/star_modes.toml
-data/star_modes.toml      generated per-star mode amplitudes (committed, so building needs no regeneration)
+tools/make_star_modes.py  amplitudes at the snapshot -> <out>/star_modes.toml (build_all.py calls it)
+data/star_modes.toml      reference amplitudes of the default configuration, for the tests and verification
 tests/                    pytest suite
 verification/             independent re-derivations and a time-domain check of the amplitudes
 ```

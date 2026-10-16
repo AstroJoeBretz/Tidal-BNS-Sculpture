@@ -508,14 +508,14 @@ src/tidal_shape.py     pure functions, numpy + scipy only
     regime_report(...) / check_regime(...)      V11: Delta_a/omega_a, max|dR/R|, dV/V
     volume_drift(...)                           numerical, reported
     star_frame_to_world(vertices, companion_sign)
-    load_star_modes(path)                       reads data/star_modes.toml
+    load_star_modes(path)                       reads a star_modes.toml
 src/tidal_waveform.py  get_ba_l2 / get_ba_l3: total complex amplitudes along the inspiral (§1a)
 src/polytrope.py       Gamma=2 polytrope: k_l, h_l, I_l, omega_a0/omega_0 (§4)
 tools/make_star_modes.py    calls get_ba_l2 / get_ba_l3 at the chosen f_gw snapshot (§3.5) and writes the
                             .toml below, mapping [+2,0,-2] -> (C_a,C_c,C_b) and [+3,+1,-1,-3] with
                             signed I (§1a). Uses the §8 stellar model (polytrope k, I, h, omega_a0 scaled
                             per star) and the derived per-star A_nl; refuses a configuration that fails V11.
-data/star_modes.toml        per-star blocks: M, R, M', f_gw snapshot (1023.6 Hz), spin_hz (negative =
+star_modes.toml             per-star blocks (written to the output directory): M, R, M', f_gw snapshot (1023.6 Hz), spin_hz (negative =
                             anti-aligned), spin_oblateness, X, X_lag,
                             modes [(l, m, C re, C im, I, h, omega_a0)]
 tests/test_tidal_shape.py   V1, V2, V4, V5, V6, V7, V8, V10, V11, V12
@@ -523,7 +523,8 @@ verification/verify_amplitudes.py   V9 regression at the sculpture stars
 src/star.py                 build_star(radius_fn): mesh bulge axis follows psi
 ```
 
-Amplitudes are data (the `.toml`), not constants in `params.py`.
+Amplitudes are data (the `.toml`), not constants in `params.py`; `data/star_modes.toml` is the committed
+reference for the default configuration, used by the tests.
 
 ---
 
@@ -618,8 +619,8 @@ $R\sin1^\circ\approx0.15$ mm; $\psi=3.4^\circ$ is $\sim0.5$ mm, $12.8^\circ$ is 
 
 ## 9. Results
 
-Usage: `python tools/make_star_modes.py` (writes `data/star_modes.toml`; refuses configurations that fail V11),
-`python -m pytest tests`, `python build_all.py` (STLs into `out/`).
+Usage: `python build_all.py` (generates the amplitudes with `tools/make_star_modes.py`, which refuses
+configurations that fail V11, then builds the STLs into `out/<config name>/`), `python -m pytest tests`.
 
 - **Tests:** 48 pass, 37 for the V-list and 11 in `tests/test_math_walkthrough.py` (V1 for $l=2$ and $l=3$ with both
   overlap signs to $10^{-12}$; V2 to $10^{-12}$; V5 to $10^{-13}$; the generator exits 1 and writes nothing for the light

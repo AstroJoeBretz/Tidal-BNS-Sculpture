@@ -21,7 +21,7 @@ companion and, optionally, an anti-aligned spin. Everything is Python and runs i
 
 ## What you get
 
-`python build_all.py` writes into `out/` (not committed; ~125 MB):
+`python build_all.py` writes into `out/default/` (not committed; ~30 MB):
 
 | File | Contents |
 |---|---|
@@ -29,6 +29,7 @@ companion and, optionally, an anti-aligned spin. Everything is Python and runs i
 | `plate_heightmap.png` + `.json` | the same relief as a 16-bit depth map, with its $z$-range |
 | `ns_heavy_1p6.stl`, `ns_light_1p2.stl` | the two stars, watertight, with a Ø3.375 mm post socket |
 | `ns_*_sphere.stl` | undeformed comparison stars of the same size |
+| `star_modes.toml` | the tidal amplitudes the stars were built from |
 | `assembly_preview.stl` | everything positioned, for rendering only |
 
 It also runs a validation pass (milling slope and curvature, wood left under the post holes, star
@@ -40,52 +41,58 @@ Python 3.11 or newer.
 
 ```bash
 pip install -r requirements.txt
-python build_all.py        # ~20 s
-python -m pytest           # ~10 s
+python build_all.py        # ~30 s, writes out/default/
+python -m pytest           # ~15 s
 ```
 
-`data/star_modes.toml` (the per-star tidal amplitudes) is committed, so building needs nothing else.
+Output goes to `out/<name of the configuration file>/`, so several designs can sit side by side.
 
 ## Make your own
 
-The system lives in [`src/params.py`](src/params.py): masses, radii, separation, panel size, relief
-depth, milling and post parameters. To change the binary:
+A design is one TOML file. Copy [`configs/default.toml`](configs/default.toml), which lists every
+setting with its meaning, change what you want (every key is optional; omitted keys take the default,
+and a misspelled key is an error), and build it:
 
-1. Edit `M1_MSUN`, `M2_MSUN`, `R1_KM`, `R2_KM`, `A_KM` in `src/params.py`.
-2. Regenerate the star amplitudes (spins in Hz, negative = anti-aligned):
+```bash
+cp configs/default.toml configs/mine.toml     # edit: masses, radii, separation, spins, panel, relief...
+python build_all.py --config configs/mine.toml   # writes out/mine/
+```
 
-   ```bash
-   python tools/make_star_modes.py --spin-heavy -500 --spin-light -200
-   ```
+[`configs/equal_mass.toml`](configs/equal_mass.toml) is a short example (1.4 + 1.4 M☉, nonspinning).
 
-   The generator refuses configurations outside the linear regime (for example a spin that puts the
-   snapshot past a mode's resonance) and writes nothing.
-3. `python build_all.py`, and read the validation output.
+What the build does for you:
+
+- regenerates the star amplitudes for the configured binary and **refuses** configurations outside the
+  linear regime (for example a spin that puts the snapshot past a mode's resonance);
+- derives the star height that gives the required clearance over the carved relief;
+- names the star files from the masses (`ns_heavy_1p6.stl`, ...);
+- validates milling slope and curvature, wood under the post holes, star height, the star–star gap, and
+  stops with a message if a check fails.
 
 Things to know:
 
-- The star height `STAR_CENTER_Z_MM` is a constant: it is the level height that gives the required
-  5 mm clearance over the carved relief. If the validation reports the clearance is violated after a
-  change, re-derive it ([`docs/design.md`](docs/design.md) §7).
-- `Z_EVAL_MM`, `C_EFF_FACTOR` and `A_PP_MM` set the *look* of the panel and its milling margins; they
-  interact (§3.4–§5.1 of the design document). Re-run the validation after changing any of them.
-- Output file names say `1p6` and `1p2` for the default masses; they are not derived from `params.py`.
-- Tidal exaggeration `X`, lag exaggeration `X_lag` and the spin-oblateness switch are per-star fields
-  of `data/star_modes.toml`, written by `tools/make_star_modes.py` (`star_block`).
+- `field.z_eval_mm`, `field.c_eff_factor` and `panel.relief_pp_mm` set the *look* of the panel and its
+  milling margins; they interact ([`docs/design.md`](docs/design.md) §3.4–§5.1). Re-run the build and
+  read the validation after changing any of them.
+- `panel.grid_step_mm` sets only the resolution of the exported plate STL and heightmap (default 2 mm,
+  a ~3 MB file); the carved field and every check are independent of it.
+- The stellar model is a Γ=2 polytrope; the tidal amplitudes are linear and Newtonian.
+- Each design is validated only against the constraints the build checks; the default design is the one
+  that has been looked at in detail.
 
 ## How it works
 
 ```
-params.py ──► binary.py  (orbit, scale S, star positions)
-                 │
-                 ├──► wavefield.py ──► plate.py ──► plate_relief.stl, heightmap
-                 │      retarded per-star potential, carved as retarded − instantaneous
-                 │
-tools/make_star_modes.py ──► data/star_modes.toml ──► tidal_shape.py ──► star.py ──► ns_*.stl
-   polytrope.py (stellar model)                          amplitudes → r(θ, φ)
+configs/*.toml ──► params.py ──► binary.py  (orbit, scale S, star positions)
+                                   │
+                                   ├──► wavefield.py ──► plate.py ──► plate_relief.stl, heightmap
+                                   │      retarded per-star potential, carved as retarded − instantaneous
+                                   │
+tools/make_star_modes.py ──► star_modes.toml ──► tidal_shape.py ──► star.py ──► ns_*.stl
+   polytrope.py (stellar model)                    amplitudes → r(θ, φ)
    tidal_waveform.py (f-mode amplitudes)
-                 │
-                 └──► validate.py   checks everything against the milling and assembly constraints
+                                   │
+                                   └──► validate.py   checks everything against the milling and assembly constraints
 ```
 
 ## Documentation

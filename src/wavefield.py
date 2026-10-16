@@ -83,7 +83,7 @@ def delta_phi(x, y, z_eval, b, k_half):
     return total_ret - total_inst
 
 
-def height_field(x, y, b, c_eff=P.C_EFF):
+def height_field(x, y, b, c_eff=P.C_EFF, norm=None):
     """z(x, y) in mm, z in [-A_pp, 0]. docs/design.md sec 4.3.
 
     No edge taper: the field is carved all the way to the cut edge of the
@@ -95,16 +95,17 @@ def height_field(x, y, b, c_eff=P.C_EFF):
     (binary.retardation_k_half), not the plate/star geometry, which stays
     fixed at whatever scale the real C produced.
 
-    The normalization N is the maximum |u_raw| over the points passed in, so z is only the
-    plate's relief when (x, y) covers the whole plate (plate.sample_grid). To read the relief
-    at a point, interpolate the plate grid (plate.relief_at) instead.
+    norm: the normalization N of docs/design.md sec 4.3. If None it is the maximum |u_raw| over
+    the points passed in, so z is only the plate's relief when (x, y) covers the whole plate. Pass
+    plate.field_norm(b) to evaluate the plate's relief on any set of points (or to read the relief
+    at a point; interpolating the plate grid, plate.relief_at, is the other way).
     """
     import binary
 
     k_half = binary.retardation_k_half(b, c_eff)
     u_raw = delta_phi(x, y, P.Z_EVAL_MM, b, k_half) / P.C ** 2
 
-    N = np.max(np.abs(u_raw))
+    N = np.max(np.abs(u_raw)) if norm is None else norm
     u = np.clip(u_raw / N, -1.0, 1.0)
     return -P.A_PP_MM / 2 * (1.0 - u)
 

@@ -19,8 +19,17 @@ def sample_grid(step=P.GRID_STEP_MM):
     return X, Y, xs, ys
 
 
-def height_grid(b: binary.Binary, X, Y):
-    return W.height_field(X, Y, b)
+def field_norm(b: binary.Binary):
+    """Normalization N of the carved field (docs/design.md sec 4.3): the maximum |u_raw| over the
+    plate sampled at ANALYSIS_STEP_MM, independent of the export resolution GRID_STEP_MM."""
+    X, Y, _, _ = sample_grid(P.ANALYSIS_STEP_MM)
+    k_half = binary.retardation_k_half(b, P.C_EFF)
+    return float(np.max(np.abs(W.delta_phi(X, Y, P.Z_EVAL_MM, b, k_half))) / P.C ** 2)
+
+
+def height_grid(b: binary.Binary, X, Y, norm=None):
+    """Relief z(x, y) in mm on the given grid, normalized by `norm` (default: field_norm(b))."""
+    return W.height_field(X, Y, b, norm=field_norm(b) if norm is None else norm)
 
 
 def _wall_faces(top_line, bottom_line, flip):

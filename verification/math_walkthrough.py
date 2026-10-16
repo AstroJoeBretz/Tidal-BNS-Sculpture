@@ -4,7 +4,7 @@ Companion to docs/math.md: every equation of that document, written out step by
 step with numpy/scipy only (no tidal_waveform import), so the numbers in the worked example can be
 reproduced and the production code (src/tidal_waveform.py + src/tidal_shape.py) can be checked against it.
 
-Input is data/star_modes.toml (masses, radii, spin, snapshot, I, h, omega_a0, A_nl) -- *not* its amplitudes C,
+Input is data/star_modes.toml (the default configuration's reference amplitudes; masses, radii, spin, snapshot, I, h, omega_a0, A_nl) -- *not* its amplitudes C,
 which are what this script recomputes and compares with.
 
 Run:  python verification/math_walkthrough.py [--star heavy|light|both]

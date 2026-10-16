@@ -9,7 +9,7 @@ calibrated linear displacement (eq. star):
 Conventions (sec 2): star frame with the companion on +x at the snapshot, +z the
 orbital angular momentum, Y_lm orthonormal with Condon-Shortley phase
 (scipy.special.sph_harm_y), phi_s the azimuth measured in the orbit-corotating
-frame. numpy + scipy only: the amplitudes are *data* (data/star_modes.toml,
+frame. numpy + scipy only: the amplitudes are *data* (star_modes.toml,
 written by tools/make_star_modes.py).
 """
 from __future__ import annotations
@@ -330,7 +330,7 @@ def check_regime(star: StarModel, allow_post_resonance: bool = False, quiet: boo
 # ---------------------------------------------------------------- data file
 
 def load_star_modes(path) -> dict[str, StarModel]:
-    """Read data/star_modes.toml -> {star name: StarModel}."""
+    """Read a star_modes.toml -> {star name: StarModel}."""
     with open(path, "rb") as fh:
         raw = tomllib.load(fh)
     stars = {}

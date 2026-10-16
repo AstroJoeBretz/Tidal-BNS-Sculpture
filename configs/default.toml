@@ -1,0 +1,49 @@
+# Default sculpture: 1.6 + 1.2 Msun binary at 33 km separation, 254 mm panel.
+# Every key is optional; omitted keys take the value below. Unknown keys are an error.
+# Run:  python build_all.py --config configs/default.toml     (output goes to out/default/)
+
+[binary]
+m1_msun = 1.6      # heavier star (must be >= m2_msun)
+m2_msun = 1.2      # lighter star
+r1_km   = 12.0     # heavier star radius
+r2_km   = 12.5     # lighter star radius
+a_km    = 33.0     # orbital separation
+
+[stars]
+tidal_exaggeration = 1.0     # X: multiplies the tidal deformation (1 = physical linear response)
+lag_exaggeration   = 1.0     # X_lag: multiplies the tidal lag phase only
+spin_oblateness    = true    # add the centrifugal l=2 flattening of each spinning star
+
+[stars.heavy]
+spin_hz = -500.0             # negative = anti-aligned with the orbit
+
+[stars.light]
+spin_hz = -200.0
+
+[field]
+z_eval_mm       = -70.0      # off-plane evaluation depth (softening length)
+c_eff_factor    = 0.35       # wave speed used for retardation, in units of c
+retarded_iters  = 10
+
+[panel]
+plate_size_mm       = 254.0
+stock_thickness_mm  = 36.0
+relief_pp_mm        = 20.0               # peak-to-valley depth of the carved field
+grid_step_mm        = 2.0                # sampling of the exported plate STL / heightmap
+scale_lambda_mm     = 212.13203435596427 # length of one GW wavelength on the piece (150*sqrt(2))
+
+[milling]
+ball_radius_mm = 1.5875      # 1/8 in ball end mill
+stepover_mm    = 0.75
+max_slope_deg  = 45.0        # validation guard, not a tool limit
+
+[posts]
+post_diameter_mm       = 3.175   # 1/8 in brass rod
+socket_clearance_mm    = 0.2
+socket_depth_mm        = 6.0     # measured from the star's pole point
+panel_hole_depth_mm    = 8.0     # drilled from the local relief surface
+star_min_gap_mm        = 5.0     # closest approach of each star to the plate; sets the star height
+min_hole_clearance_mm  = 3.0     # wood that must remain below each post hole
+
+[mesh]
+icosphere_subdivisions = 6       # star mesh: 20 * 4^n faces before the socket cut

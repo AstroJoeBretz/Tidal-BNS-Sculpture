@@ -1,4 +1,4 @@
-"""Generate data/star_modes.toml: per-star f-mode amplitudes at the sculpture snapshot.
+"""Generate star_modes.toml: per-star f-mode amplitudes at the sculpture snapshot.
 
 Calls tidal_waveform.get_ba_l2 / get_ba_l3 at the sculpture's own f_gw (binary.solve().f_gw)
 and writes the *total* complex amplitude (equilibrium + dynamical tide) with the signed
@@ -8,7 +8,11 @@ Stellar model: Gamma = 2 (n = 1) Newtonian polytrope, solved in src/polytrope.py
 to each star through omega_0 = sqrt(G M / R^3). The l=2 nonlinear frequency shift is derived
 per star from Paper 1 Eq. 16 (docs/neutron_star_shape.md); l=3 has none.
 
-Run:  python tools/make_star_modes.py [--spin-heavy -500] [--spin-light -200] [--out PATH]
+The system, spins and exaggerations come from the configuration file (`--config`, default
+configs/default.toml; docs/design.md). build_all.py calls `generate` itself; this tool is for
+generating the amplitudes on their own.
+
+Run:  python tools/make_star_modes.py [--config PATH] [--spin-heavy HZ] [--spin-light HZ] [--out PATH]
 The V11 regime gate (past-resonance error) is applied before anything is written.
 """
 import argparse
@@ -21,6 +25,10 @@ import numpy as np
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
+import cli_config                  # noqa: E402
+
+cli_config.select_from_argv()
+
 import binary                      # noqa: E402
 import params as P                 # noqa: E402
 import polytrope as poly           # noqa: E402
@@ -32,8 +40,8 @@ PAPER1_NL = float(np.sqrt(np.pi / 5) * (-0.21 + 4 * (-0.45) * 0.32))     # = -0.
 W_REF = jw.W_NL_REF                                                     # reference GW frequency of the nonlinear shift
 
 STARS = {   # name: (M [Msun], R [km], companion mass [Msun], companion_sign, default spin [Hz])
-    "heavy": (P.M1_MSUN, P.R1_KM, P.M2_MSUN, +1, -500.0),
-    "light": (P.M2_MSUN, P.R2_KM, P.M1_MSUN, -1, -200.0),
+    "heavy": (P.M1_MSUN, P.R1_KM, P.M2_MSUN, +1, P.SPIN_HEAVY_HZ),
+    "light": (P.M2_MSUN, P.R2_KM, P.M1_MSUN, -1, P.SPIN_LIGHT_HZ),
 }
 
 
@@ -80,7 +88,7 @@ def star_block(name, poly_nums, spin_hz, f_snap_hz):
 
     r_over_R = float((jw.G * Mt / (np.pi * f_snap_hz) ** 2) ** (1 / 3) / R)
     star = dict(name=name, M_msun=M, R_km=R_km, Mc_msun=Mc, companion_sign=sign, f_gw_hz=f_snap_hz,
-                spin_hz=spin_hz, spin_oblateness=True, X=1.0, X_lag=1.0,
+                spin_hz=spin_hz, spin_oblateness=P.SPIN_OBLATENESS, X=P.STAR_X, X_lag=P.STAR_X_LAG,
                 r_over_R=r_over_R, A_nl_l2=float(A_nl2), omega0_rad_s=float(w0), modes=modes)
     return star
 
@@ -121,42 +129,57 @@ def write_toml(path, stars, meta):
     Path(path).write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def main(argv=None):
-    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--spin-heavy", type=float, default=STARS["heavy"][4], help="Hz, negative = anti-aligned")
-    ap.add_argument("--spin-light", type=float, default=STARS["light"][4], help="Hz, negative = anti-aligned")
-    ap.add_argument("--out", type=Path, default=ROOT / "data" / "star_modes.toml")
-    args = ap.parse_args(argv)
+def generate(out, spin_heavy=None, spin_light=None, verbose=True):
+    """Compute the per-star amplitudes for the configured system and write them to `out`.
 
+    Returns 0 on success, 1 (nothing written) if a star fails the V11 regime gate.
+    """
+    spins = {"heavy": STARS["heavy"][4] if spin_heavy is None else spin_heavy,
+             "light": STARS["light"][4] if spin_light is None else spin_light}
+    say = print if verbose else (lambda *a, **k: None)
     f_snap = binary.solve().f_gw
     nums = polytrope_numbers()
-    print(f"snapshot f_gw = {f_snap:.2f} Hz")
-    print(f"polytrope: l=2 k={nums[2]['k']:.5f} h={nums[2]['h']:.5f} w/w0={nums[2]['w']:.4f} | "
-          f"l=3 k={nums[3]['k']:.5f} h={nums[3]['h']:.5f} w/w0={nums[3]['w']:.4f}")
+    say(f"snapshot f_gw = {f_snap:.2f} Hz")
+    say(f"polytrope: l=2 k={nums[2]['k']:.5f} h={nums[2]['h']:.5f} w/w0={nums[2]['w']:.4f} | "
+        f"l=3 k={nums[3]['k']:.5f} h={nums[3]['h']:.5f} w/w0={nums[3]['w']:.4f}")
     stars = []
-    for name, spin in (("heavy", args.spin_heavy), ("light", args.spin_light)):
+    for name in ("heavy", "light"):
+        spin = spins[name]
         s = star_block(name, nums, spin, f_snap)
         rep = TS.regime_report(to_model(s))
-        print(f"\n{name}: spin {spin:.0f} Hz, r/R = {s['r_over_R']:.3f}, A_nl(l=2) = {s['A_nl_l2']:+.4f}")
+        say(f"\n{name}: spin {spin:.0f} Hz, r/R = {s['r_over_R']:.3f}, A_nl(l=2) = {s['A_nl_l2']:+.4f}")
         for r in rep["modes"]:
             if r["m"] > 0:
-                print(f"   mode (l={r['l']}, m={r['m']:+d}): Delta/omega = {r['delta_over_omega']:+.3f}")
-        print(f"   tide dR/R in [{rep['tide_range'][0]:+.3f}, {rep['tide_range'][1]:+.3f}], "
-              f"dV/V = {rep['dV_tide']:+.4f}")
+                say(f"   mode (l={r['l']}, m={r['m']:+d}): Delta/omega = {r['delta_over_omega']:+.3f}")
+        say(f"   tide dR/R in [{rep['tide_range'][0]:+.3f}, {rep['tide_range'][1]:+.3f}], "
+            f"dV/V = {rep['dV_tide']:+.4f}")
         for msg in rep["warnings"]:
-            print(f"   WARNING: {msg}")
+            say(f"   WARNING: {msg}")
         if rep["errors"]:
             print("\n".join(f"   ERROR: {e}" for e in rep["errors"]))
             print(f"\nV11 failed for {name}: nothing written.")
             return 1
         stars.append(s)
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    write_toml(args.out, stars, {
+    out = Path(out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    write_toml(out, stars, {
         "generator": "tools/make_star_modes.py",
         "model": "Gamma=2 Newtonian polytrope scaled per star; Paper 1/2 amplitudes via src/tidal_waveform.py",
         "f_gw_hz": f_snap})
-    print(f"\nwrote {args.out}")
+    say(f"\nwrote {out}")
     return 0
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--config", type=Path, default=None, help="configuration TOML (default configs/default.toml)")
+    ap.add_argument("--spin-heavy", type=float, default=None,
+                    help="Hz, negative = anti-aligned (default: from the configuration)")
+    ap.add_argument("--spin-light", type=float, default=None,
+                    help="Hz, negative = anti-aligned (default: from the configuration)")
+    ap.add_argument("--out", type=Path, default=ROOT / "out" / P.CONFIG_NAME / "star_modes.toml")
+    args = ap.parse_args(argv)
+    return generate(args.out, args.spin_heavy, args.spin_light)
 
 
 if __name__ == "__main__":

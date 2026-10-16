@@ -15,7 +15,7 @@ import tidal_shape as TS
 # guard is for.
 # The genuine hard floor is the concave-curvature check below (ball radius
 # vs surface curvature), not this one.
-MAX_SLOPE_DEG = 45.0
+MAX_SLOPE_DEG = P.MAX_SLOPE_DEG
 
 # Minimum wood left behind a panel post hole (docs/design.md sec 7).
 # There is no flat zone under the stars in the current field model, so each
@@ -23,7 +23,7 @@ MAX_SLOPE_DEG = 45.0
 # the full plate grid (plate.relief_at). Slightly more conservative than the
 # ~2.2 mm precedent already accepted for the star's own socket wall (sec
 # 6.4), since this location sees a wider, thinner span of surrounding stock.
-MIN_HOLE_CLEARANCE_MM = 3.0
+MIN_HOLE_CLEARANCE_MM = P.MIN_HOLE_CLEARANCE_MM
 
 
 def check_mesh(mesh, name):
@@ -87,25 +87,25 @@ def check_post_hole_clearance(b, X, Y, Z):
                               "-- reduce A_pp or increase stock thickness")
 
 
-def check_star_height(b, X, Y, Z, heavy_mesh, light_mesh):
+def check_star_height(b, X, Y, Z, heavy_mesh, light_mesh, z_center):
     """Closest approach of each placed star (flat, socket and all) to the plate surface must be
     at least STAR_MIN_GAP_MM (docs/design.md sec 7).
 
-    Minimum vertex-to-vertex distance; with the 0.5 mm plate grid and a ~5 mm gap this
-    overestimates the surface distance by < 0.02 mm.
+    Minimum vertex-to-vertex distance on the analysis grid (X, Y, Z at ANALYSIS_STEP_MM); with
+    that 0.5 mm spacing and a ~5 mm gap this overestimates the surface distance by < 0.02 mm.
     """
     tree = cKDTree(np.column_stack([X.ravel(), Y.ravel(), Z.ravel()]))
     ok = True
     for name, mesh, x_mm in (("heavy", heavy_mesh, b.x1_mm), ("light", light_mesh, b.x2_mm)):
-        placed = mesh.vertices + np.array([x_mm, 0.0, P.STAR_CENTER_Z_MM])
+        placed = mesh.vertices + np.array([x_mm, 0.0, z_center])
         gap = float(tree.query(placed)[0].min())
         this_ok = gap >= P.STAR_MIN_GAP_MM
         ok = ok and this_ok
-        print(f"[{'PASS' if this_ok else 'FAIL'}] {name} star height: centre z = {P.STAR_CENTER_Z_MM:.2f} mm, "
+        print(f"[{'PASS' if this_ok else 'FAIL'}] {name} star height: centre z = {z_center:.2f} mm, "
               f"closest approach to plate = {gap:.3f} mm (need >= {P.STAR_MIN_GAP_MM:.1f} mm)")
     if not ok:
         raise AssertionError("a star is closer to the plate than STAR_MIN_GAP_MM "
-                             "-- raise STAR_CENTER_Z_MM")
+                             "-- raise the star height")
 
 
 def check_star_gap(b, heavy_mesh, light_mesh, heavy_fn, light_fn):
@@ -147,14 +147,16 @@ def check_star_regimes(heavy_model, light_model):
             print(f"        warning: {msg}")
 
 
-def run(b, X, Y, Z, heavy_mesh, light_mesh, plate_mesh, heavy_model, light_model):
+def run(b, X, Y, Z, heavy_mesh, light_mesh, plate_mesh, heavy_model, light_model, z_center,
+        heavy_name="ns_heavy", light_name="ns_light"):
+    """X, Y, Z: the plate relief on the analysis grid (ANALYSIS_STEP_MM), not the export grid."""
     check_mesh(plate_mesh, "plate_relief")
-    check_mesh(heavy_mesh, "ns_heavy_1p6")
-    check_mesh(light_mesh, "ns_light_1p2")
+    check_mesh(heavy_mesh, heavy_name)
+    check_mesh(light_mesh, light_name)
     check_depth_budget(Z)
     check_slope_and_curvature(X, Y, Z)
     check_post_hole_clearance(b, X, Y, Z)
-    check_star_height(b, X, Y, Z, heavy_mesh, light_mesh)
+    check_star_height(b, X, Y, Z, heavy_mesh, light_mesh, z_center)
     check_star_regimes(heavy_model, light_model)
     check_star_gap(b, heavy_mesh, light_mesh,
                    heavy_model.radius_fn(b.R1_mm), light_model.radius_fn(b.R2_mm))
