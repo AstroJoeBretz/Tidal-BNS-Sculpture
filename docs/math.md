@@ -393,7 +393,7 @@ which is why the regime gate (§7) refuses that.
 
 For odd $l$ both $W_{l,-m}=-W_{lm}$ and $I_{l,-m}=-I_{lm}$, so $V_{l,-m}=V_{lm}$ — the drive is symmetric between $\pm m$, as it must be
 for a real potential. The shape uses $C_a/I_a$ mode by mode, so these signs must travel with the amplitudes
-(`data/star_modes.toml` stores $I$ per mode).
+(`data/default/star_modes.toml` stores $I$ per mode).
 
 ---
 

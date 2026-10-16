@@ -500,7 +500,7 @@ src/star.py               icosphere, radial displacement, socket boolean -> STL
 src/assembly.py           preview scene
 src/validate.py           post-generation checks
 tools/make_star_modes.py  amplitudes at the snapshot -> <out>/star_modes.toml (build_all.py calls it)
-data/star_modes.toml      reference amplitudes of the default configuration, for the tests and verification
+data/<config>/star_modes.toml  reference amplitudes of the default and equal-mass configurations, for the tests and verification
 tests/                    pytest suite
 verification/             independent re-derivations and a time-domain check of the amplitudes
 ```

@@ -1,7 +1,7 @@
 """Checks of the equations in docs/math.md against the production data and code.
 
 verification/math_walkthrough.py re-implements the chain orbit -> amplitudes -> surface in float64 with
-numpy/scipy only; these tests tie it to data/star_modes.toml (written by tools/make_star_modes.py) and to
+numpy/scipy only; these tests tie it to data/default/star_modes.toml (written by tools/make_star_modes.py) and to
 src/tidal_shape.py.
 """
 import tomllib
@@ -16,7 +16,7 @@ import polytrope as poly
 import tidal_shape as TS
 
 ROOT = Path(__file__).resolve().parent.parent
-RAW = tomllib.load(open(ROOT / "data" / "star_modes.toml", "rb"))
+RAW = tomllib.load(open(ROOT / "data" / "default" / "star_modes.toml", "rb"))
 
 
 @pytest.fixture(scope="module", params=["heavy", "light"])

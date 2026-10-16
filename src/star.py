@@ -71,7 +71,7 @@ if __name__ == "__main__":
     import tidal_shape as TS
 
     b = binary.solve()
-    models = TS.load_star_modes(Path(__file__).resolve().parent.parent / "data" / "star_modes.toml")
+    models = TS.load_star_modes(Path(__file__).resolve().parent.parent / "data" / "default" / "star_modes.toml")
     for name, R_mm in (("heavy", b.R1_mm), ("light", b.R2_mm)):
         fn = models[name].radius_fn(R_mm)
         mesh = build_star(fn)

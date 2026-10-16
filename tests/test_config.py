@@ -1,4 +1,5 @@
 """Configuration loading, regeneration of the reference amplitudes, and the derived star height."""
+import subprocess
 import sys
 import tomllib
 from pathlib import Path
@@ -46,7 +47,7 @@ def test_regenerated_amplitudes_match_the_committed_reference(tmp_path):
     out = tmp_path / "modes.toml"
     assert MSM.generate(out, verbose=False) == 0
     new = tomllib.loads(out.read_text())
-    ref = tomllib.load(open(ROOT / "data" / "star_modes.toml", "rb"))
+    ref = tomllib.load(open(ROOT / "data" / "default" / "star_modes.toml", "rb"))
     for sn, sr in zip(new["star"], ref["star"]):
         assert sn["name"] == sr["name"] and sn["spin_hz"] == sr["spin_hz"]
         for mn, mr in zip(sn["mode"], sr["mode"]):
@@ -62,3 +63,18 @@ def test_star_center_height_over_a_flat_plate():
     # lowest point 8 mm below the centre; the 5 mm gap puts the centre at -10 + 8 + 5 = 3 mm
     z = ASM.star_center_z(X, Y, Z, [(ball, 0.0)], gap=5.0)
     assert 3.0 <= z <= 3.1
+
+
+def test_equal_mass_reference_is_reproduced_by_its_config(tmp_path):
+    out = tmp_path / "modes.toml"
+    r = subprocess.run([sys.executable, str(ROOT / "tools" / "make_star_modes.py"),
+                        "--config", str(ROOT / "configs" / "equal_mass.toml"), "--out", str(out)],
+                       capture_output=True, text=True)
+    assert r.returncode == 0, r.stdout + r.stderr
+    new = tomllib.loads(out.read_text())
+    ref = tomllib.load(open(ROOT / "data" / "equal_mass" / "star_modes.toml", "rb"))
+    for sn, sr in zip(new["star"], ref["star"]):
+        assert sn["M_msun"] == 1.4 and sn["spin_hz"] == 0.0
+        for mn, mr in zip(sn["mode"], sr["mode"]):
+            assert mn["C_re"] == pytest.approx(mr["C_re"], rel=1e-9, abs=1e-15)
+            assert mn["C_im"] == pytest.approx(mr["C_im"], rel=1e-9, abs=1e-15)

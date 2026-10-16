@@ -16,7 +16,7 @@ import star as STAR
 import tidal_shape as TS
 
 ROOT = Path(__file__).resolve().parent.parent
-MODES_TOML = ROOT / "data" / "star_modes.toml"
+MODES_TOML = ROOT / "data" / "default" / "star_modes.toml"
 RNG = np.random.default_rng(12345)
 
 

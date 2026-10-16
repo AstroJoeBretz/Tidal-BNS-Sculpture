@@ -523,8 +523,8 @@ verification/verify_amplitudes.py   V9 regression at the sculpture stars
 src/star.py                 build_star(radius_fn): mesh bulge axis follows psi
 ```
 
-Amplitudes are data (the `.toml`), not constants in `params.py`; `data/star_modes.toml` is the committed
-reference for the default configuration, used by the tests.
+Amplitudes are data (the `.toml`), not constants in `params.py`; `data/<config name>/star_modes.toml` are the
+committed reference amplitudes of the default and equal-mass configurations, used by the tests.
 
 ---
 
