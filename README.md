@@ -4,6 +4,10 @@ Generate the files for a gravitational-wave sculpture of a binary neutron star: 
 hardwood panel carrying the retarded field of the orbit, with two 3D-printed, **tidally deformed**
 neutron stars on brass posts above it.
 
+![3D rendering of the assembled sculpture](docs/images/3D_rendering.png)
+
+![Rotating view of the assembled sculpture](docs/images/3D_rotation.gif)
+
 ![Relief heightmap of the panel](docs/images/plate_heightmap.png)
 
 *The milling heightmap produced by `build_all.py` (light = high, dark = deep; 254 × 254 mm panel,
