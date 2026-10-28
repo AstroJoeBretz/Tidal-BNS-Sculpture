@@ -1,23 +1,50 @@
 # Tidal NS Sculpture
 
-Generate the files for a gravitational-wave sculpture of a binary neutron star: a CNC-milled
-hardwood panel carrying the retarded field of the orbit, with two 3D-printed, **tidally deformed**
-neutron stars on brass posts above it.
+**Code that designs a gravitational-wave sculpture of a binary neutron star, and generates the files to
+make it.**
 
-![3D rendering of the assembled sculpture](docs/images/3D_rendering.png)
+![The finished sculpture](docs/images/finished_sculpture.png)
 
-![Rotating view of the assembled sculpture](docs/images/3D_rotation.gif)
+*The finished default design: resin-printed, tidally deformed neutron stars on 1/8 inch brass posts,
+above a CNC-milled walnut base.*
+
+## Overview
+
+Two neutron stars in a tight orbit raise tides on each other and radiate gravitational waves that spiral
+outward. This repository turns that physics into an object: a hardwood panel milled with the retarded
+field of the orbit, and two neutron stars, deformed by their mutual tide, held above it.
+
+Give it a binary (masses, radii, separation, spins) in a small TOML file and it produces everything
+needed to build the piece, then checks the design against the milling and assembly constraints.
+
+**What the repository provides**
+
+- **The panel.** The retarded gravitational field of the two stars, carved as a relief, exported as a
+  closed STL for CAM and as a 16-bit heightmap.
+- **The stars.** Meshes shaped from the f-mode tidal amplitudes of Yu et al.
+  ([arXiv:2211.07002](https://arxiv.org/abs/2211.07002),
+  [arXiv:2404.00147](https://arxiv.org/abs/2404.00147)): triaxial, with the bulge lagging the companion
+  and, optionally, the flattening of an anti-aligned spin.
+- **The assembly.** Post sockets sized for 1/8 inch brass rod, the star height that clears the carved
+  relief, rod lengths, and a positioned preview.
+- **Validation.** Milling slope and curvature, wood left under the post holes, star clearance, the
+  star–star gap and a linear-regime check; a bad design fails with a message.
+- **Documentation.** The design, the shape specification and the full derivation from orbit to surface
+  (see [Documentation](#documentation)).
+
+The default design is a 1.6 + 1.2 M☉ binary at a 33 km separation, scaled so one gravitational
+wavelength is 212 mm. Everything is Python and builds in about half a minute.
+
+## Gallery
+
+![Rotating render of the assembled design](docs/images/3D_rotation.gif)
+
+*A rotating render of the assembled design.*
 
 ![Relief heightmap of the panel](docs/images/plate_heightmap.png)
 
 *The milling heightmap produced by `build_all.py` (light = high, dark = deep; 254 × 254 mm panel,
 20 mm relief).*
-
-The default design is a 1.6 + 1.2 M☉ binary at a 33 km separation, a $\lambda_{\rm GW}$ = 212 mm
-scale, and stars that are shaped from the f-mode amplitudes of Yu et al.
-([arXiv:2211.07002](https://arxiv.org/abs/2211.07002),
-[arXiv:2404.00147](https://arxiv.org/abs/2404.00147)): triaxial, with the bulge lagging the
-companion and, optionally, an anti-aligned spin. Everything is Python and runs in seconds.
 
 ## What you get
 
@@ -32,8 +59,7 @@ companion and, optionally, an anti-aligned spin. Everything is Python and runs i
 | `star_modes.toml` | the tidal amplitudes the stars were built from |
 | `assembly_preview.stl` | everything positioned, for rendering only |
 
-It also runs a validation pass (milling slope and curvature, wood left under the post holes, star
-height over the carved relief, star–star gap, linear-regime check) and fails loudly on a bad design.
+The build also runs the validation described above.
 
 ## Quick start
 
