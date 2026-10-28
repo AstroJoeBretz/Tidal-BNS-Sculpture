@@ -37,14 +37,16 @@ wavelength is 212 mm. Everything is Python and builds in about half a minute.
 
 ## Gallery
 
-![Rotating render of the assembled design](docs/images/3D_rotation.gif)
-
-*A rotating render of the assembled design.*
-
-![Relief heightmap of the panel](docs/images/plate_heightmap.png)
-
-*The milling heightmap produced by `build_all.py` (light = high, dark = deep; 254 × 254 mm panel,
-20 mm relief).*
+<table>
+  <tr>
+    <td align="center"><img src="docs/images/3D_rotation.gif" width="400" height="400" alt="Rotating render of the assembled design"></td>
+    <td align="center"><img src="docs/images/plate_heightmap.png" width="400" height="400" alt="Relief heightmap of the panel"></td>
+  </tr>
+  <tr>
+    <td align="center"><em>A rotating render of the assembled design.</em></td>
+    <td align="center"><em>The milling heightmap produced by <code>build_all.py</code> (light = high, dark = deep; 254 × 254 mm panel, 20 mm relief).</em></td>
+  </tr>
+</table>
 
 ## What you get
 
